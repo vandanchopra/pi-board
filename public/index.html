@@ -758,22 +758,8 @@
       document.getElementById('vEstimate').textContent = task.estimate ? `${task.estimate} points` : 'None';
       const deps = task.depends_on || [];
       document.getElementById('vDependsOn').innerHTML = deps.length > 0
-        ? deps.map(d => `<span class="depends-on-chip chip">#${d.id} ${escapeHtml(d.title)} (${d.status}) <button class="dep-remove-btn" data-task-id="${task.id}" data-dep-id="${d.id}" title="Remove dependency">×</button></span>`).join(' ')
+        ? deps.map(d => `<span class="chip">#${d.id} ${escapeHtml(d.title)} (${d.status})</span>`).join(' ')
         : 'None';
-      setTimeout(() => {
-        document.querySelectorAll('.dep-remove-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const tid = Number(btn.dataset.taskId);
-            const did = Number(btn.dataset.depId);
-            const { task: t } = await api('/api/tasks/' + tid);
-            const remaining = (t.depends_on || []).filter(d => d.id !== did).map(d => d.id);
-            await api('/api/tasks/' + tid, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dependsOnIds: remaining }) });
-            showToast('Dependency removed');
-            openTaskModal(tid);
-          });
-        });
-      }, 0);
       document.getElementById('vBlocking').innerHTML = task.blocking && task.blocking.length > 0
         ? task.blocking.map(b => `<span class="chip">#${b.id} ${escapeHtml(b.title)} (${b.status})</span>`).join(' ')
         : 'None';
@@ -1286,6 +1272,7 @@
       await populateLabelFilter();
       await renderBoard();
       startAutoRefresh();
+      handleRoute();
     })();
   </script>
 </body>
