@@ -283,9 +283,9 @@
         </div>
         <div class="form-group"><label>Activity</label><div id="vActivity" style="font-size:0.8rem;opacity:0.85"></div></div>
         <div class="form-group"><label>Comments</label><div id="vComments"></div></div>
-        <div class="form-group" style="display:flex;gap:0.5rem">
-          <input id="addCommentInput" placeholder="Add a comment…" style="flex:1" />
-          <button id="addCommentBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem">Post</button>
+        <div class="form-group" style="display:flex;gap:0.5rem;align-items:flex-start">
+          <textarea id="addCommentInput" placeholder="Add a comment… (Shift+Enter or Ctrl+Enter to post)" style="flex:1;min-height:36px;font-size:0.85rem" rows="2"></textarea>
+          <button id="addCommentBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem;margin-top:0">Post</button>
         </div>
       </div>
       <div class="modal-actions">
@@ -305,7 +305,7 @@
         <div class="form-group"><label>Sprint</label><select id="eSprint"><option value="">None</option></select></div>
         <div class="form-group"><label>Assignee</label><select id="eAssignee"><option value="">Unassigned</option></select></div>
         <div class="form-group"><label>Labels</label><div class="label-picker" id="eLabels"></div></div>
-        <div class="form-group"><label>Due Date</label><input id="eDueDate" type="date" /></div>
+        <div class="form-group"><label>Due Date</label><input id="eDueDate" type="datetime-local" /></div>
         <div class="form-group"><label>Estimate</label><input id="eEstimate" type="number" min="0" placeholder="Story points" /></div>
         <div class="form-group"><label>Depends On</label>
           <div style="display:flex;gap:0.3rem;align-items:flex-start">
@@ -330,7 +330,7 @@
       <div class="form-group"><label>Sprint</label><select id="nSprint"><option value="">None</option></select></div>
       <div class="form-group"><label>Assignee</label><select id="nAssignee"><option value="">Unassigned</option></select></div>
       <div class="form-group"><label>Labels</label><div class="label-picker" id="nLabels"></div></div>
-      <div class="form-group"><label>Due Date</label><input id="nDueDate" type="date" /></div>
+      <div class="form-group"><label>Due Date</label><input id="nDueDate" type="datetime-local" /></div>
       <div class="form-group"><label>Estimate</label><input id="nEstimate" type="number" min="0" placeholder="Story points" /></div>
       <div class="form-group"><label>Depends On</label>
           <div style="display:flex;gap:0.3rem;align-items:flex-start">
@@ -569,8 +569,8 @@
 
     async function renderBoard() {
       const tasks = await fetchTasks();
-      const today = new Date().toISOString().slice(0, 10);
-      const overdue = tasks.filter(t => t.due_date && t.due_date < today && t.status !== 'completed');
+      const nowIso = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      const overdue = tasks.filter(t => t.due_date && t.due_date < nowIso && t.status !== 'completed');
       if (overdue.length > 0) {
         showToast(`⚠️ ${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}`);
       }
@@ -718,7 +718,7 @@
       container.innerHTML = task.comments.map(c => `
         <div style="margin:0.3rem 0;padding:0.3rem;background:#0f172a;border-radius:0.25rem">
           <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${c.created_at}</div>
-          <div style="font-size:0.85rem">${escapeHtml(c.body)}</div>
+          <div style="font-size:0.85rem">${renderMarkdown(c.body)}</div>
         </div>
       `).join('');
     }
@@ -775,7 +775,7 @@
       document.getElementById('vSprint').textContent = sprint ? sprint.name : 'None';
       document.getElementById('vAssignee').innerHTML = task.assignee ? `<span class="assignee-chip" style="background:${task.assignee.color}22;color:${task.assignee.color}">${task.assignee.name}</span>` : 'Unassigned';
       document.getElementById('vLabels').innerHTML = renderLabelChips(task.labels) || 'None';
-      document.getElementById('vDueDate').textContent = task.due_date || 'None';
+      document.getElementById('vDueDate').textContent = task.due_date ? new Date(task.due_date).toLocaleString() : 'None';
       document.getElementById('vEstimate').textContent = task.estimate ? `${task.estimate} points` : 'None';
       const deps = task.depends_on || [];
       document.getElementById('vDependsOn').innerHTML = deps.length > 0
@@ -838,18 +838,24 @@
         showToast('Failed to add subtask: ' + err.message);
       }
     });
-    document.getElementById('addCommentBtn').addEventListener('click', async () => {
+    function postComment() {
       const input = document.getElementById('addCommentInput');
       const body = input.value.trim();
       const taskId = Number(input.dataset.taskId);
       if (!body || !taskId) return;
-      try {
-        await api('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, body }) });
-        input.value = '';
-        const { task } = await api(`/api/tasks/${taskId}`);
-        renderComments(task);
-      } catch (err) {
-        showToast('Failed to post comment: ' + err.message);
+      api('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, body }) })
+        .then(() => {
+          input.value = '';
+          return api('/api/tasks/' + taskId);
+        })
+        .then(({ task }) => renderComments(task))
+        .catch(err => showToast('Failed to post comment: ' + err.message));
+    }
+    document.getElementById('addCommentBtn').addEventListener('click', postComment);
+    document.getElementById('addCommentInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        postComment();
       }
     });
     document.getElementById('saveTaskBtn').addEventListener('click', async () => {
@@ -863,7 +869,7 @@
         sprint_id: document.getElementById('eSprint').value ? Number(document.getElementById('eSprint').value) : null,
         assignee_id: document.getElementById('eAssignee').value ? Number(document.getElementById('eAssignee').value) : null,
         labelIds: getSelectedLabelIds('eLabels'),
-        due_date: document.getElementById('eDueDate').value || null,
+        due_date: document.getElementById('eDueDate').value ? new Date(document.getElementById('eDueDate').value).toISOString().replace('T', ' ').slice(0, 19) : null,
         estimate: document.getElementById('eEstimate').value ? Number(document.getElementById('eEstimate').value) : null,
         dependsOnIds: Array.from(document.getElementById('eDependsOn').selectedOptions).map(o => Number(o.value)),
       };
@@ -902,9 +908,10 @@
 
     // Add task modal
     document.getElementById('addTaskBtn').addEventListener('click', async () => {
-      await fetchSprints();
-      await fetchPeople();
-      await fetchLabels();
+      // Ensure data is loaded (may already be cached from initial load)
+      if (allSprints.length === 0) await fetchSprints();
+      if (allPeople.length === 0) await fetchPeople();
+      if (allLabels.length === 0) await fetchLabels();
       populateSelect(document.getElementById('nSprint'), allSprints, 'id', s => s.name, 'None');
       populateSelect(document.getElementById('nAssignee'), allPeople, 'id', p => p.name, 'Unassigned');
       renderLabelPicker('nLabels');
@@ -922,7 +929,7 @@
         sprint_id: document.getElementById('nSprint').value ? Number(document.getElementById('nSprint').value) : null,
         assignee_id: document.getElementById('nAssignee').value ? Number(document.getElementById('nAssignee').value) : null,
         labelIds: getSelectedLabelIds('nLabels'),
-        due_date: document.getElementById('nDueDate').value || null,
+        due_date: document.getElementById('nDueDate').value ? new Date(document.getElementById('nDueDate').value).toISOString().replace('T', ' ').slice(0, 19) : null,
         estimate: document.getElementById('nEstimate').value ? Number(document.getElementById('nEstimate').value) : null,
         dependsOnIds: Array.from(document.getElementById('nDependsOn').selectedOptions).map(o => Number(o.value)),
       };
