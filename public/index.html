@@ -186,13 +186,14 @@
     /* Task modal grid layout */
     .task-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: 0.75rem;
       margin-bottom: 0.75rem;
     }
     .task-grid .form-group { margin-bottom: 0; }
     .task-grid .span-2 { grid-column: span 2; }
     .task-grid .span-3 { grid-column: span 3; }
+    .task-grid .span-4 { grid-column: span 4; }
     .task-grid .full-width { grid-column: 1 / -1; }
     #taskView { display: flex; flex-direction: column; gap: 0.75rem; }
     #taskView .bottom-section { margin-top: 0; }
@@ -261,8 +262,8 @@
       <h2 id="taskModalTitle">Task</h2>
       <div id="taskView">
       <div class="task-grid">
-        <div class="form-group span-3"><label>Title</label><div id="vTitle"></div></div>
-        <div class="form-group span-3"><label>Description</label><div id="vDesc" style="white-space:pre-wrap"></div></div>
+        <div class="form-group span-4"><label>Title</label><div id="vTitle"></div></div>
+        <div class="form-group span-4"><label>Description</label><div id="vDesc" style="white-space:pre-wrap"></div></div>
         <div class="form-group"><label>Type</label><div id="vType"></div></div>
         <div class="form-group"><label>Status</label><div id="vStatus"></div></div>
         <div class="form-group"><label>Priority</label><div id="vPriority"></div></div>
@@ -296,8 +297,8 @@
     </div><div id="taskEdit" style="display:none">
       <input type="hidden" id="eId" />
       <div class="task-grid">
-        <div class="form-group span-3"><label>Title</label><input id="eTitle" /></div>
-        <div class="form-group span-3"><label>Description</label><textarea id="eDesc"></textarea></div>
+        <div class="form-group span-4"><label>Title</label><input id="eTitle" /></div>
+        <div class="form-group span-4"><label>Description</label><textarea id="eDesc"></textarea></div>
         <div class="form-group"><label>Type</label><select id="eType"><option value="bug">Bug</option><option value="feature">Feature</option><option value="chore">Chore</option></select></div>
         <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
         <div class="form-group"><label>Priority</label><select id="ePriority"><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
