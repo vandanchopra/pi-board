@@ -284,7 +284,7 @@
         <div class="form-group"><label>Activity</label><div id="vActivity" style="font-size:0.8rem;opacity:0.85"></div></div>
         <div class="form-group"><label>Comments</label><div id="vComments"></div></div>
         <div class="form-group" style="display:flex;gap:0.5rem;align-items:flex-start">
-          <textarea id="addCommentInput" placeholder="Add a comment… (Shift+Enter or Ctrl+Enter to post)" style="flex:1;min-height:36px;font-size:0.85rem" rows="2"></textarea>
+          <textarea id="addCommentInput" placeholder="Add a comment… (Shift+Enter or Ctrl+Enter to post)" style="flex:1;min-height:36px;font-size:0.85rem" rows="10"></textarea>
           <button id="addCommentBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem;margin-top:0">Post</button>
         </div>
       </div>
@@ -717,10 +717,31 @@
       }
       container.innerHTML = task.comments.map(c => `
         <div style="margin:0.3rem 0;padding:0.3rem;background:#0f172a;border-radius:0.25rem">
-          <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${c.created_at}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${c.created_at}</div>
+            <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
+          </div>
           <div style="font-size:0.85rem">${renderMarkdown(c.body)}</div>
         </div>
       `).join('');
+      // Wire up comment delete buttons (setTimeout to ensure DOM updated)
+      setTimeout(() => {
+        container.querySelectorAll('.comment-delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const commentId = Number(btn.dataset.commentId);
+            const tid = Number(btn.dataset.taskId);
+            if (!confirm('Delete this comment?')) return;
+            try {
+              await api('/api/comments/' + commentId, { method: 'DELETE' });
+              const { task } = await api('/api/tasks/' + tid);
+              renderComments(task);
+            } catch (err) {
+              showToast('Failed to delete comment: ' + err.message);
+            }
+          });
+        });
+      }, 0);
     }
 
     function renderSubtasks(task) {
@@ -843,7 +864,7 @@
       const body = input.value.trim();
       const taskId = Number(input.dataset.taskId);
       if (!body || !taskId) return;
-      api('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, body }) })
+      api('/api/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_id: taskId, body, author: 'Vandan' }) })
         .then(() => {
           input.value = '';
           return api('/api/tasks/' + taskId);
@@ -908,7 +929,8 @@
 
     // Add task modal
     document.getElementById('addTaskBtn').addEventListener('click', async () => {
-      // Ensure data is loaded (may already be cached from initial load)
+      // Open modal immediately, then populate asynchronously
+      openModal('addModalOverlay');
       if (allSprints.length === 0) await fetchSprints();
       if (allPeople.length === 0) await fetchPeople();
       if (allLabels.length === 0) await fetchLabels();
@@ -916,7 +938,6 @@
       populateSelect(document.getElementById('nAssignee'), allPeople, 'id', p => p.name, 'Unassigned');
       renderLabelPicker('nLabels');
       populateDependencySelect(document.getElementById('nDependsOn'), null, []);
-      openModal('addModalOverlay');
     });
     document.getElementById('cancelAddBtn').addEventListener('click', () => closeModal('addModalOverlay'));
     document.getElementById('createTaskBtn').addEventListener('click', async () => {
@@ -967,7 +988,7 @@
         });
       });
     }
-    document.getElementById('labelsBtn').addEventListener('click', () => { renderLabelsList(); openModal('labelsModalOverlay'); });
+    document.getElementById('labelsBtn').addEventListener('click', () => { openModal('labelsModalOverlay'); renderLabelsList(); });
     document.getElementById('closeLabelsBtn').addEventListener('click', () => closeModal('labelsModalOverlay'));
     document.getElementById('addLabelBtn').addEventListener('click', async () => {
       try {
@@ -999,7 +1020,7 @@
         });
       });
     }
-    document.getElementById('peopleBtn').addEventListener('click', () => { renderPeopleList(); openModal('peopleModalOverlay'); });
+    document.getElementById('peopleBtn').addEventListener('click', () => { openModal('peopleModalOverlay'); renderPeopleList(); });
     document.getElementById('closePeopleBtn').addEventListener('click', () => closeModal('peopleModalOverlay'));
     document.getElementById('addPersonBtn').addEventListener('click', async () => {
       try {
@@ -1117,7 +1138,7 @@
         });
       });
     }
-    document.getElementById('sprintBtn').addEventListener('click', () => { renderSprintsList(); openModal('sprintsModalOverlay'); });
+    document.getElementById('sprintBtn').addEventListener('click', () => { openModal('sprintsModalOverlay'); renderSprintsList(); });
     document.getElementById('closeSprintsBtn').addEventListener('click', () => closeModal('sprintsModalOverlay'));
     document.getElementById('addSprintBtn').addEventListener('click', async () => {
       try {
