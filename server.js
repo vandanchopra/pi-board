@@ -392,6 +392,11 @@ app.get('/api/export/csv', (req, res) => {
 
 app.get('/api/statuses', (_req, res) => res.json({ statuses: STATUSES }));
 
+// SPA catch-all: serve index.html for client-side routes like /task/:id
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 let serverInstance = null;
 
 function start(port = 3333) {
