@@ -654,7 +654,7 @@
           const newStatus = body.dataset.status;
           if (!id || !newStatus) return;
           try {
-            await api(`/api/tasks/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, order: 0, author: 'ADAM' }) });
+            await api(`/api/tasks/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, order: 0, author: 'Vandan' }) });
             showToast('Task moved');
             await renderBoard();
           } catch (err) {
@@ -1005,7 +1005,7 @@
         dependsOnIds: Array.from(document.getElementById('eDependsOn').selectedOptions).map(o => Number(o.value)),
       };
       try {
-        await api(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await api(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign(body, { author: 'Vandan' })) });
         showToast('Task saved');
         closeModal('taskModalOverlay');
         await renderBoard();
@@ -1016,7 +1016,7 @@
     document.getElementById('duplicateTaskBtn').addEventListener('click', async () => {
       const id = Number(document.getElementById('eId').value);
       try {
-        await api(`/api/tasks/${id}/duplicate`, { method: 'POST' });
+        await api(`/api/tasks/${id}/duplicate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ author: 'Vandan' }) });
         showToast('Task duplicated');
         closeModal('taskModalOverlay');
         await renderBoard();
@@ -1028,7 +1028,7 @@
       const id = Number(document.getElementById('eId').value);
       if (!confirm('Delete this task?')) return;
       try {
-        await api(`/api/tasks/${id}`, { method: 'DELETE' });
+        await api(`/api/tasks/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ author: 'Vandan' }) });
         showToast('Task deleted');
         closeModal('taskModalOverlay');
         await renderBoard();
@@ -1043,7 +1043,7 @@
       const currentlyArchived = btn.textContent.trim() === 'Unarchive';
       const newArchived = currentlyArchived ? 0 : 1;
       try {
-        await api(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: newArchived }) });
+        await api(`/api/tasks/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived: newArchived, author: 'Vandan' }) });
         showToast(newArchived ? 'Task archived' : 'Task restored');
         closeModal('taskModalOverlay');
         await renderBoard();
@@ -1080,7 +1080,7 @@
         dependsOnIds: Array.from(document.getElementById('nDependsOn').selectedOptions).map(o => Number(o.value)),
       };
       try {
-        await api('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await api('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign(body, { author: 'Vandan' })) });
         showToast('Task created');
         closeModal('addModalOverlay');
         document.getElementById('nTitle').value = '';

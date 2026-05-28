@@ -67,7 +67,7 @@ app.patch('/api/tasks/:id', (req, res) => {
 
 app.delete('/api/tasks/:id', (req, res) => {
   try {
-    const task = deleteTask(Number(req.params.id));
+    const task = deleteTask(Number(req.params.id), req.body.author);
     res.json({ task });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -85,7 +85,7 @@ app.post('/api/tasks/:id/move', (req, res) => {
 
 app.post('/api/tasks/:id/duplicate', (req, res) => {
   try {
-    const task = require('./lib/board').duplicateTask(Number(req.params.id));
+    const task = require('./lib/board').duplicateTask(Number(req.params.id), req.body.author);
     res.status(201).json({ task });
   } catch (e) {
     res.status(400).json({ error: e.message });
