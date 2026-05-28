@@ -759,10 +759,11 @@
       if (task.activity) {
         for (const a of task.activity) {
           const fromTo = a.old_value && a.new_value ? ` ${escapeHtml(a.old_value)} → ${escapeHtml(a.new_value)}` : a.new_value ? `: ${escapeHtml(a.new_value)}` : '';
+          const activityAuthor = a.author || 'pm-vh';
           items.push({
             type: 'activity',
             timestamp: a.created_at,
-            html: `${a.created_at} — ${a.action}${fromTo}`
+            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${a.created_at} — ${a.action}${fromTo}`
           });
         }
       }
