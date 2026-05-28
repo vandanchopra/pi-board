@@ -206,11 +206,35 @@
     .task-grid .span-3 { grid-column: span 3; }
     .task-grid .span-4 { grid-column: span 4; }
     .task-grid .full-width { grid-column: 1 / -1; }
-    #taskView { display: flex; flex-direction: column; gap: 0.75rem; }
+    #taskView { display: flex; flex-direction: column; gap: 0; }
     #taskView .bottom-section { margin-top: 0; }
     .bottom-section { display: flex; flex-direction: column; gap: 0.75rem; }
-    #vActivity { max-height: 300px; overflow-y: auto; }
-    #vComments { max-height: 250px; overflow-y: auto; }
+    #taskFeed { max-height: 50vh; overflow-y: auto; padding-right: 0.25rem; }
+    .feed-item { padding: 0.4rem 0; border-bottom: 1px solid rgba(148,163,184,0.1); }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-item .meta { font-size: 0.7rem; opacity: 0.7; display: flex; justify-content: space-between; align-items: flex-start; }
+    .feed-item .body { font-size: 0.85rem; margin-top: 0.15rem; }
+    .task-title-bar {
+      background: #1e40af;
+      margin: -1rem -1rem 0 -1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      position: sticky;
+      top: -1rem;
+      z-index: 5;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .task-title-bar .title-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .task-title-bar .task-number {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+    }
 
     @media (max-width: 1200px) {
       .board { grid-template-columns: repeat(3, 1fr); }
@@ -270,10 +294,12 @@
   <!-- Task Modal -->
   <div class="modal-overlay" id="taskModalOverlay">
     <div class="modal" id="taskModal">
-      <h2 id="taskModalTitle">Task</h2>
       <div id="taskView">
+      <div class="task-title-bar">
+        <span class="title-text" id="vTitle"></span>
+        <span class="task-number" id="vTaskNumber"></span>
+      </div>
       <div class="task-grid">
-        <div class="form-group span-4"><label>Title</label><div id="vTitle"></div></div>
         <div class="form-group span-4"><label>Description</label><div id="vDesc" style="white-space:pre-wrap"></div></div>
         <div class="form-group"><label>Type</label><div id="vType"></div></div>
         <div class="form-group"><label>Status</label><div id="vStatus"></div></div>
@@ -292,8 +318,7 @@
           <input id="addSubtaskInput" placeholder="New subtask…" style="flex:1" />
           <button id="addSubtaskBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem">Add</button>
         </div>
-        <div class="form-group"><label>Activity</label><div id="vActivity" style="font-size:0.8rem;opacity:0.85"></div></div>
-        <div class="form-group"><label>Comments</label><div id="vComments"></div></div>
+        <div class="form-group"><label>Activity & Comments</label><div id="taskFeed" style="font-size:0.85rem"></div></div>
         <div class="form-group" style="display:flex;gap:0.5rem;align-items:flex-start">
           <textarea id="addCommentInput" placeholder="Add a comment… (Shift+Enter or Ctrl+Enter to post)" style="flex:1;min-height:36px;font-size:0.85rem" rows="10"></textarea>
           <button id="addCommentBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem;margin-top:0">Post</button>
@@ -726,6 +751,78 @@
       return Array.from(document.querySelectorAll(`#${containerId} .label-option.selected`)).map(el => Number(el.dataset.id));
     }
 
+    function renderFeed(task) {
+      const container = document.getElementById('taskFeed');
+      const items = [];
+      
+      // Add activity entries
+      if (task.activity) {
+        for (const a of task.activity) {
+          items.push({
+            type: 'activity',
+            timestamp: a.created_at,
+            html: `<span style="opacity:0.6">${a.created_at}</span> — <b>${a.action}</b>${a.new_value ? ': ' + escapeHtml(a.new_value) : ''}`
+          });
+        }
+      }
+      
+      // Add comment entries
+      if (task.comments) {
+        for (const c of task.comments) {
+          items.push({
+            type: 'comment',
+            timestamp: c.created_at,
+            id: c.id,
+            taskId: task.id,
+            html: `
+              <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                <div><b>${escapeHtml(c.author)}</b> — <span style="opacity:0.6">${c.created_at}</span></div>
+                <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
+              </div>
+              <div style="margin-top:0.15rem">${renderMarkdown(c.body)}</div>
+            `
+          });
+        }
+      }
+      
+      // Sort by timestamp
+      items.sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+      
+      if (items.length === 0) {
+        container.innerHTML = '<span style="opacity:0.6">No activity or comments yet</span>';
+        return;
+      }
+      
+      container.innerHTML = items.map(item => `
+        <div class="feed-item">
+          <div class="meta">
+            ${item.type === 'comment' ? '<span style="color:#38bdf8">💬</span>' : '<span style="color:#94a3b8">⚙️</span>'}
+            <span>${item.html.match(/<span[^>]*opacity[^>]*>[^<]*<\/span>/)?.[0] || item.timestamp || ''}</span>
+          </div>
+          <div class="body">${item.html.replace(/<span[^>]*opacity[^>]*>[^<]*<\/span>/, '')}</div>
+        </div>
+      `).join('');
+      
+      // Wire up comment delete buttons
+      setTimeout(() => {
+        container.querySelectorAll('.comment-delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const commentId = Number(btn.dataset.commentId);
+            const tid = Number(btn.dataset.taskId);
+            if (!confirm('Delete this comment?')) return;
+            try {
+              await api('/api/comments/' + commentId, { method: 'DELETE' });
+              const { task } = await api('/api/tasks/' + tid);
+              renderFeed(task);
+            } catch (err) {
+              showToast('Failed to delete comment: ' + err.message);
+            }
+          });
+        });
+      }, 0);
+    }
+
     function renderComments(task) {
       const container = document.getElementById('vComments');
       if (!task.comments || task.comments.length === 0) {
@@ -752,7 +849,7 @@
             try {
               await api('/api/comments/' + commentId, { method: 'DELETE' });
               const { task } = await api('/api/tasks/' + tid);
-              renderComments(task);
+              renderFeed(task);
             } catch (err) {
               showToast('Failed to delete comment: ' + err.message);
             }
@@ -803,8 +900,8 @@
     // Task detail / edit modal
     async function openTaskModal(taskId) {
       const { task } = await api(`/api/tasks/${taskId}`);
-      document.getElementById('taskModalTitle').textContent = `Task #${task.id}`;
-      document.getElementById('vTitle').textContent = task.title;
+      document.getElementById('vTaskNumber').textContent = `Task #${task.id}`;
+      // Title is shown in the blue title bar via vTitle
       document.getElementById('vDesc').innerHTML = renderMarkdown(task.description) || '<span style="opacity:0.6">(none)</span>';
       document.getElementById('vType').innerHTML = `<span class="chip type-${task.type}">${task.type}</span>`;
       document.getElementById('vStatus').textContent = task.status;
@@ -826,10 +923,7 @@
       document.getElementById('addSubtaskInput').dataset.taskId = task.id;
       // Set archive button text based on current archived state
       document.getElementById('archiveTaskBtn').textContent = task.archived ? 'Unarchive' : 'Archive';
-      document.getElementById('vActivity').innerHTML = task.activity && task.activity.length > 0
-        ? task.activity.map(a => `<div style="margin:0.15rem 0"><span style="opacity:0.6">${a.created_at}</span> — <b>${a.action}</b>${a.new_value ? ': ' + escapeHtml(a.new_value) : ''}</div>`).join('')
-        : '<span style="opacity:0.6">No activity</span>';
-      renderComments(task);
+      renderFeed(task);
       document.getElementById('addCommentInput').dataset.taskId = task.id;
 
       // Edit form
@@ -888,7 +982,7 @@
           input.value = '';
           return api('/api/tasks/' + taskId);
         })
-        .then(({ task }) => renderComments(task))
+        .then(({ task }) => renderFeed(task))
         .catch(err => showToast('Failed to post comment: ' + err.message));
     }
     document.getElementById('addCommentBtn').addEventListener('click', postComment);
