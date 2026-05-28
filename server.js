@@ -76,7 +76,7 @@ app.delete('/api/tasks/:id', (req, res) => {
 
 app.post('/api/tasks/:id/move', (req, res) => {
   try {
-    const task = moveTask(Number(req.params.id), req.body.status, req.body.order);
+    const task = moveTask(Number(req.params.id), req.body.status, req.body.order, req.body.author || "pm-vh");
     res.json({ task });
   } catch (e) {
     res.status(400).json({ error: e.message });
