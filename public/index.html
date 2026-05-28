@@ -598,7 +598,7 @@
         e.stopPropagation();
         const status = prompt(`Move task #${task.id} to status:\n${STATUSES.join(', ')}`, task.status);
         if (status && STATUSES.includes(status) && status !== task.status) {
-          api(`/api/tasks/${task.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, order: task.order }) })
+          api(`/api/tasks/${task.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, order: task.order, author: 'ADAM' }) })
             .then(() => { showToast('Task moved'); renderBoard(); })
             .catch(err => showToast(err.message));
         }
@@ -654,7 +654,7 @@
           const newStatus = body.dataset.status;
           if (!id || !newStatus) return;
           try {
-            await api(`/api/tasks/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, order: 0 }) });
+            await api(`/api/tasks/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, order: 0, author: 'ADAM' }) });
             showToast('Task moved');
             await renderBoard();
           } catch (err) {
@@ -763,7 +763,7 @@
           items.push({
             type: 'activity',
             timestamp: a.created_at,
-            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${a.created_at} — ${a.action}${fromTo}`
+            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${new Date(a.created_at).toLocaleString()} — ${a.action}${fromTo}`
           });
         }
       }
@@ -776,7 +776,7 @@
             timestamp: c.created_at,
             id: c.id,
             taskId: task.id,
-            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${c.created_at}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
+            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${new Date(c.created_at).toLocaleString()}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
             bodyHtml: renderMarkdown(c.body)
           });
         }
@@ -829,7 +829,7 @@
       container.innerHTML = task.comments.map(c => `
         <div style="margin:0.3rem 0;padding:0.3rem;background:#0f172a;border-radius:0.25rem">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${c.created_at}</div>
+            <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${new Date(c.created_at).toLocaleString()}</div>
             <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
           </div>
           <div style="font-size:0.85rem">${renderMarkdown(c.body)}</div>
