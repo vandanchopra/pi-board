@@ -598,7 +598,7 @@
         e.stopPropagation();
         const status = prompt(`Move task #${task.id} to status:\n${STATUSES.join(', ')}`, task.status);
         if (status && STATUSES.includes(status) && status !== task.status) {
-          api(`/api/tasks/${task.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, order: task.order, author: 'ADAM' }) })
+          api(`/api/tasks/${task.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, order: task.order, author: 'Vandan' }) })
             .then(() => { showToast('Task moved'); renderBoard(); })
             .catch(err => showToast(err.message));
         }
@@ -763,7 +763,7 @@
           items.push({
             type: 'activity',
             timestamp: a.created_at,
-            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${new Date(a.created_at).toLocaleString()} — ${a.action}${fromTo}`
+            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${new Date(a.created_at + ' UTC').toLocaleString()} — ${a.action}${fromTo}`
           });
         }
       }
@@ -776,7 +776,7 @@
             timestamp: c.created_at,
             id: c.id,
             taskId: task.id,
-            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${new Date(c.created_at).toLocaleString()}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
+            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${new Date(c.created_at + ' UTC').toLocaleString()}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
             bodyHtml: renderMarkdown(c.body)
           });
         }
@@ -907,7 +907,7 @@
       document.getElementById('vSprint').textContent = sprint ? sprint.name : 'None';
       document.getElementById('vAssignee').innerHTML = task.assignee ? `<span class="assignee-chip" style="background:${task.assignee.color}22;color:${task.assignee.color}">${task.assignee.name}</span>` : 'Unassigned';
       document.getElementById('vLabels').innerHTML = renderLabelChips(task.labels) || 'None';
-      document.getElementById('vDueDate').textContent = task.due_date ? new Date(task.due_date).toLocaleString() : 'None';
+      document.getElementById('vDueDate').textContent = task.due_date ? new Date(task.due_date + ' UTC').toLocaleString() : 'None';
       document.getElementById('vEstimate').textContent = task.estimate ? `${task.estimate} points` : 'None';
       const deps = task.depends_on || [];
       document.getElementById('vDependsOn').innerHTML = deps.length > 0
