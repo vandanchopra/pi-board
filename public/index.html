@@ -758,10 +758,11 @@
       // Add activity entries
       if (task.activity) {
         for (const a of task.activity) {
+          const fromTo = a.old_value && a.new_value ? ` ${escapeHtml(a.old_value)} → ${escapeHtml(a.new_value)}` : a.new_value ? `: ${escapeHtml(a.new_value)}` : '';
           items.push({
             type: 'activity',
             timestamp: a.created_at,
-            html: `<span style="opacity:0.6">${a.created_at}</span> — <b>${a.action}</b>${a.new_value ? ': ' + escapeHtml(a.new_value) : ''}`
+            html: `${a.created_at} — ${a.action}${fromTo}`
           });
         }
       }
@@ -774,13 +775,8 @@
             timestamp: c.created_at,
             id: c.id,
             taskId: task.id,
-            html: `
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                <div><b>${escapeHtml(c.author)}</b> — <span style="opacity:0.6">${c.created_at}</span></div>
-                <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
-              </div>
-              <div style="margin-top:0.15rem">${renderMarkdown(c.body)}</div>
-            `
+            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${c.created_at}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
+            bodyHtml: renderMarkdown(c.body)
           });
         }
       }
@@ -795,11 +791,11 @@
       
       container.innerHTML = items.map(item => `
         <div class="feed-item">
-          <div class="meta">
-            ${item.type === 'comment' ? '<span style="color:#38bdf8">💬</span>' : '<span style="color:#94a3b8">⚙️</span>'}
-            <span>${item.html.match(/<span[^>]*opacity[^>]*>[^<]*<\/span>/)?.[0] || item.timestamp || ''}</span>
+          <div style="display:flex;align-items:baseline;gap:0.3rem;font-size:0.85rem">
+            ${item.type === 'comment' ? '<span style="color:#38bdf8;flex-shrink:0">💬</span>' : '<span style="color:#94a3b8;flex-shrink:0">⚙️</span>'}
+            <span>${item.html}</span>
           </div>
-          <div class="body">${item.html.replace(/<span[^>]*opacity[^>]*>[^<]*<\/span>/, '')}</div>
+          ${item.type === 'comment' && item.bodyHtml ? `<div style="margin-top:0.15rem;font-size:0.85rem">${item.bodyHtml}</div>` : ''}
         </div>
       `).join('');
       
