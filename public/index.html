@@ -447,7 +447,7 @@
           <button id="addSubtaskBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem">Add</button>
         </div>
         <div class="form-group" id="runningSessionsGroup">
-          <label>🟢 Running Sessions</label>
+          <label id="runningSessionsLabel">🔴 Running Sessions</label>
           <div id="runningSessions" style="font-size:0.85rem;background:#1e293b;border:1px solid #334155;border-radius:0.5rem;padding:0.75rem"></div>
         </div>
         <div class="form-group"><label>Activity & Comments</label><div id="taskFeed" style="font-size:0.85rem"></div></div>
@@ -955,10 +955,13 @@
       async function refresh() {
         try {
           const { sessions } = await api(`/api/tasks/${taskId}/sessions`);
+          const label = document.getElementById('runningSessionsLabel');
           if (!sessions || sessions.length === 0) {
             container.innerHTML = '<span style="opacity:0.6">None</span>';
+            if (label) label.innerHTML = '🔴 Running Sessions';
             return;
           }
+          if (label) label.innerHTML = '🟢 Running Sessions';
           container.innerHTML = sessions.map(s => {
             const elapsed = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 1000);
             const elapsedStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed/60)}m ${elapsed%60}s`;
