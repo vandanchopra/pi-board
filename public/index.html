@@ -337,6 +337,7 @@
       background: rgba(248,113,113,0.15);
       color: #fca5a5;
     }
+    #runningSessions a:hover { text-decoration: underline !important; }
     .task-title-bar {
       background: #1e40af;
       margin: -1rem -1rem 0 -1rem;
@@ -444,6 +445,10 @@
         <div class="form-group" style="display:flex;gap:0.5rem">
           <input id="addSubtaskInput" placeholder="New subtask…" style="flex:1" />
           <button id="addSubtaskBtn" class="primary" style="font-size:0.8rem;padding:0.35rem 0.6rem">Add</button>
+        </div>
+        <div class="form-group" id="runningSessionsGroup" style="display:none">
+          <label>🟢 Running Sessions</label>
+          <div id="runningSessions" style="font-size:0.85rem;background:#1e293b;border:1px solid #334155;border-radius:0.5rem;padding:0.75rem"></div>
         </div>
         <div class="form-group"><label>Activity & Comments</label><div id="taskFeed" style="font-size:0.85rem"></div></div>
         <div class="form-group" style="display:flex;gap:0.5rem;align-items:flex-start">
@@ -936,6 +941,57 @@
       return Array.from(document.querySelectorAll(`#${containerId} .label-option.selected`)).map(el => Number(el.dataset.id));
     }
 
+    // ── Running Sessions panel ───────────────────────────────────────────
+    let runningSessionsInterval = null;
+
+    async function renderRunningSessions(taskId) {
+      const container = document.getElementById('runningSessions');
+      const group = document.getElementById('runningSessionsGroup');
+      if (!container || !group) return;
+
+      // Clear previous polling
+      if (runningSessionsInterval) clearInterval(runningSessionsInterval);
+
+      async function refresh() {
+        try {
+          const { sessions } = await api(`/api/tasks/${taskId}/sessions`);
+          if (!sessions || sessions.length === 0) {
+            group.style.display = 'none';
+            return;
+          }
+          group.style.display = '';
+          container.innerHTML = sessions.map(s => {
+            const elapsed = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 1000);
+            const elapsedStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed/60)}m ${elapsed%60}s`;
+            const statusIcon = s.status === 'stopping' ? '🛑' : s.status === 'stuck' ? '⚠️' : '🟢';
+            const obsUrl = `http://localhost:1111/session/${s.uid}`;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #334155">
+              <div style="flex:1">
+                ${statusIcon} <strong>${escapeHtml(s.sandboxName || 'workflow')}</strong>
+                <span style="opacity:0.6;margin-left:8px">iter ${s.iteration} · ${elapsedStr}</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <a href="${obsUrl}" target="_blank" style="color:#38bdf8;font-size:0.8rem;text-decoration:none">View Live →</a>
+                <button onclick="stopSession('${s.uid}', ${taskId})" style="background:#dc2626;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:0.75rem;cursor:pointer">Stop</button>
+              </div>
+            </div>`;
+          }).join('');
+        } catch {}
+      }
+
+      await refresh();
+      runningSessionsInterval = setInterval(refresh, 3000);
+    }
+
+    // Global stopSession function
+    window.stopSession = async function(uid, taskId) {
+      if (!confirm('Stop this workflow session?')) return;
+      try {
+        await api(`/api/sessions/${uid}/stop`, { method: 'POST', body: JSON.stringify({ reason: 'user_requested' }) });
+        await renderRunningSessions(taskId);
+      } catch(e) { alert('Failed to stop: ' + e.message); }
+    };
+
     function renderFeed(task) {
       const container = document.getElementById('taskFeed');
       const items = [];
@@ -1193,6 +1249,7 @@
       // Set archive button text based on current archived state
       document.getElementById('archiveTaskBtn').textContent = task.archived ? 'Unarchive' : 'Archive';
       renderFeed(task);
+      renderRunningSessions(task.id);
       document.getElementById('addCommentInput').dataset.taskId = task.id;
 
       // Edit form
