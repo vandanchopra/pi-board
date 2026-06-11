@@ -41,9 +41,87 @@
     button.primary:hover { background: #1d4ed8; }
     button.danger { background: #dc2626; border-color: #dc2626; }
     button.danger:hover { background: #b91c1c; }
+    .project-sidebar {
+      position: fixed;
+      left: 0;
+      top: 60px;
+      bottom: 0;
+      width: 44px;
+      background: #0f172a;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 0.5rem;
+      z-index: 9;
+      gap: 0.4rem;
+    }
+    .sidebar-header {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      cursor: default;
+    }
+    .sidebar-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .sidebar-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+    .sidebar-icon:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 8px currentColor;
+    }
+    .sidebar-icon .tooltip {
+      display: none;
+      position: absolute;
+      left: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 0.2rem 0.5rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      z-index: 20;
+      pointer-events: none;
+      color: #e2e8f0;
+    }
+    .sidebar-icon:hover .tooltip {
+      display: block;
+    }
+    .sidebar-icon.active {
+      box-shadow: 0 0 0 2px rgba(56,189,248,0.5);
+    }
+    /* Shift board right to make room for sidebar */
+    body.has-sidebar .board {
+      margin-left: 44px;
+    }
     .board {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 0.75rem;
       padding: 1rem;
       overflow-x: auto;
@@ -125,6 +203,7 @@
     .status-code-review .column-header { color: #a78bfa; }
     .status-uat .column-header { color: #fbbf24; }
     .status-completed .column-header { color: #4ade80; }
+    .status-features-of-the-future .column-header { color: #c084fc; }
     .toast {
       position: fixed;
       bottom: 1rem;
@@ -190,8 +269,15 @@
       border-radius: 0.375rem;
       transition: background 0.15s, box-shadow 0.15s;
     }
+    .card.drag-over-card {
+      border-top: 2px solid #38bdf8;
+      margin-top: -2px;
+    }
     body.dragging .column-body {
       min-height: 80px;
+    }
+    .card.dragging {
+      opacity: 0.4;
     }
 
     /* Task modal grid layout */
@@ -214,6 +300,43 @@
     .feed-item:last-child { border-bottom: none; }
     .feed-item .meta { font-size: 0.7rem; opacity: 0.7; display: flex; justify-content: space-between; align-items: flex-start; }
     .feed-item .body { font-size: 0.85rem; margin-top: 0.15rem; }
+    .comment-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      background: #1e293b;
+      cursor: pointer;
+      font-size: 0.75rem;
+      line-height: 1;
+      margin-left: 0.25rem;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, color 0.15s;
+      vertical-align: middle;
+    }
+    .feed-item:hover .comment-action-btn,
+    div[style*="display:flex"]:hover .comment-action-btn {
+      opacity: 1;
+    }
+    .comment-edit-btn {
+      color: #fbbf24;
+      border-color: rgba(251,191,36,0.3);
+    }
+    .comment-edit-btn:hover {
+      background: rgba(251,191,36,0.15);
+      color: #fcd34d;
+    }
+    .comment-delete-btn {
+      color: #f87171;
+      border-color: rgba(248,113,113,0.3);
+    }
+    .comment-delete-btn:hover {
+      background: rgba(248,113,113,0.15);
+      color: #fca5a5;
+    }
     .task-title-bar {
       background: #1e40af;
       margin: -1rem -1rem 0 -1rem;
@@ -288,6 +411,10 @@
       <button id="statsBtn">Stats</button>
     </div>
   </header>
+  <aside class="project-sidebar" id="projectSidebar">
+    <div class="sidebar-header" title="Projects">P</div>
+    <div class="sidebar-icons" id="sidebarIcons"></div>
+  </aside>
   <main class="board" id="board"></main>
   <div class="toast" id="toast"></div>
 
@@ -337,7 +464,7 @@
         <div class="form-group span-4"><label>Title</label><input id="eTitle" /></div>
         <div class="form-group span-4"><label>Description</label><textarea id="eDesc"></textarea></div>
         <div class="form-group"><label>Type</label><select id="eType"><option value="bug">Bug</option><option value="feature">Feature</option><option value="chore">Chore</option></select></div>
-        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
+        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option><option value="features-of-the-future">Features of the Future</option></select></div>
         <div class="form-group"><label>Priority</label><select id="ePriority"><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
         <div class="form-group"><label>Sprint</label><select id="eSprint"><option value="">None</option></select></div>
         <div class="form-group"><label>Assignee</label><select id="eAssignee"><option value="">Unassigned</option></select></div>
@@ -365,11 +492,11 @@
       <div class="form-group"><label>Title</label><input id="nTitle" /></div>
       <div class="form-group"><label>Description</label><textarea id="nDesc"></textarea></div>
       <div class="form-group"><label>Type</label><select id="nType"><option value="feature">Feature</option><option value="bug">Bug</option><option value="chore">Chore</option></select></div>
-      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
+      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option><option value="features-of-the-future">Features of the Future</option></select></div>
       <div class="form-group"><label>Priority</label><select id="nPriority"><option value="medium">Medium</option><option value="urgent">Urgent</option><option value="high">High</option><option value="low">Low</option></select></div>
       <div class="form-group"><label>Sprint</label><select id="nSprint"><option value="">None</option></select></div>
       <div class="form-group"><label>Assignee</label><select id="nAssignee"><option value="">Unassigned</option></select></div>
-      <div class="form-group"><label>Labels</label><div class="label-picker" id="nLabels"></div></div>
+      <div class="form-group"><label>Labels <span style="color:#f87171" title="Required">*</span></label><div class="label-picker" id="nLabels"></div></div>
       <div class="form-group"><label>Due Date</label><input id="nDueDate" type="datetime-local" /></div>
       <div class="form-group"><label>Estimate</label><input id="nEstimate" type="number" min="0" placeholder="Story points" /></div>
       <div class="form-group"><label>Depends On</label>
@@ -445,7 +572,7 @@
   </div>
 
   <script>
-    const STATUSES = ['backlog','in-progress','code-review','uat','completed'];
+    const STATUSES = ['backlog','in-progress','code-review','uat','completed','features-of-the-future'];
     const boardEl = document.getElementById('board');
     const sprintFilterEl = document.getElementById('sprintFilter');
     const searchInputEl = document.getElementById('searchInput');
@@ -583,13 +710,69 @@
         document.body.classList.add('dragging');
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
+        div.classList.add('dragging');
       });
       div.addEventListener('dragend', () => {
         isDragging = false;
         document.body.classList.remove('dragging');
+        div.classList.remove('dragging');
         document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+        document.querySelectorAll('.card.drag-over-card').forEach(el => el.classList.remove('drag-over-card'));
+      });
+      // Intra-column drag: highlight card above drop target
+      div.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        document.querySelectorAll('.card.drag-over-card').forEach(el => el.classList.remove('drag-over-card'));
+        e.dataTransfer.dropEffect = 'move';
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (draggedId && Number(draggedId) !== task.id) {
+          div.classList.add('drag-over-card');
+        }
+      });
+      div.addEventListener('dragleave', (e) => {
+        div.classList.remove('drag-over-card');
+      });
+      // Drop on card to reorder within same column
+      div.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        div.classList.remove('drag-over-card');
+        const draggedId = Number(e.dataTransfer.getData('text/plain'));
+        if (!draggedId || draggedId === task.id) return;
+        // Find both cards' status and reorder
+        const parentColumn = div.closest('.column-body');
+        const targetStatus = parentColumn ? parentColumn.dataset.status : null;
+        if (!targetStatus) return;
+        try {
+          // Get all tasks in this column
+          const allTasks = await fetchAllTasks();
+          const columnTasks = allTasks.filter(t => t.status === targetStatus).sort((a, b) => (a.order || 0) - (b.order || 0));
+          // Build new order: insert dragged task before target
+          const newOrder = [];
+          for (const ct of columnTasks) {
+            if (ct.id === draggedId) continue; // skip dragged
+            if (ct.id === task.id) {
+              newOrder.push(draggedId); // insert dragged before target
+            }
+            newOrder.push(ct.id);
+          }
+          // Update order for each task in the column
+          for (let i = 0; i < newOrder.length; i++) {
+            await api(`/api/tasks/${newOrder[i]}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: targetStatus, order: i, author: 'Vandan' })
+            });
+          }
+          showToast('Reordered');
+          await renderBoard();
+        } catch (err) {
+          showToast('Reordering failed: ' + err.message);
+        }
       });
       div.addEventListener('click', (e) => {
+        if (isDragging) return; // don't open modal after drag
         if (e.target.closest('.card-menu-btn')) return;
         if (e.target.closest('a')) return;
         openTaskModal(task.id);
@@ -647,6 +830,8 @@
         body.addEventListener('dragleave', (e) => { body.classList.remove('drag-over'); });
         body.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
         body.addEventListener('drop', async (e) => {
+          // Only handle drop directly on column body (not on cards within it)
+          if (e.target !== body && !e.target.classList.contains('column-body')) return;
           e.preventDefault();
           document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
           const draggedId = e.dataTransfer.getData('text/plain');
@@ -763,7 +948,9 @@
           items.push({
             type: 'activity',
             timestamp: a.created_at,
-            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${new Date(a.created_at + ' UTC').toLocaleString()} — ${a.action}${fromTo}`
+            id: a.id,
+            taskId: task.id,
+            html: `<span style="color:#38bdf8">${escapeHtml(activityAuthor)}</span> — ${new Date(a.created_at + ' UTC').toLocaleString()} — ${a.action}${fromTo} <button class="comment-action-btn comment-delete-btn" data-activity-id="${a.id}" data-task-id="${task.id}" title="Remove entry">✕</button>`
           });
         }
       }
@@ -776,7 +963,7 @@
             timestamp: c.created_at,
             id: c.id,
             taskId: task.id,
-            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${new Date(c.created_at + ' UTC').toLocaleString()}</span> <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.7rem;padding:0;line-height:1;margin-left:0.3rem" title="Delete comment">×</button>`,
+            html: `<span style="color:#38bdf8">${escapeHtml(c.author)}</span> — <span style="opacity:0.6">${new Date(c.created_at + ' UTC').toLocaleString()}</span> <button class="comment-action-btn comment-edit-btn" data-comment-id="${c.id}" data-task-id="${task.id}" title="Edit comment">✎</button> <button class="comment-action-btn comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" title="Delete comment">✕</button>`,
             bodyHtml: renderMarkdown(c.body)
           });
         }
@@ -800,8 +987,24 @@
         </div>
       `).join('');
       
-      // Wire up comment delete buttons
+      // Wire up activity delete buttons
       setTimeout(() => {
+        container.querySelectorAll('[data-activity-id]').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const activityId = Number(btn.dataset.activityId);
+            const tid = Number(btn.dataset.taskId);
+            if (!confirm('Remove this activity entry?')) return;
+            try {
+              await api('/api/activity/' + activityId, { method: 'DELETE' });
+              const { task } = await api('/api/tasks/' + tid);
+              renderFeed(task);
+            } catch (err) {
+              showToast('Failed to remove activity entry: ' + err.message);
+            }
+          });
+        });
+
         container.querySelectorAll('.comment-delete-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -814,6 +1017,39 @@
               renderFeed(task);
             } catch (err) {
               showToast('Failed to delete comment: ' + err.message);
+            }
+          });
+        });
+        // Wire up comment edit buttons
+        container.querySelectorAll('.comment-edit-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const commentId = Number(btn.dataset.commentId);
+            const tid = Number(btn.dataset.taskId);
+            const feedItem = btn.closest('.feed-item');
+            const bodyDiv = feedItem.querySelector('div:nth-child(2)');
+            const oldBody = bodyDiv ? bodyDiv.textContent : '';
+            if (bodyDiv) {
+              bodyDiv.innerHTML = `<textarea style="width:100%;min-height:40px;font-size:0.85rem;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:0.25rem;padding:0.3rem">${escapeHtml(oldBody)}</textarea>
+                <div style="display:flex;gap:0.3rem;margin-top:0.2rem">
+                  <button class="comment-save-btn" style="background:#334155;color:#e2e8f0;border:none;border-radius:0.25rem;padding:0.15rem 0.5rem;font-size:0.7rem;cursor:pointer">Save</button>
+                  <button class="comment-cancel-btn" style="background:transparent;color:#94a3b8;border:none;border-radius:0.25rem;padding:0.15rem 0.5rem;font-size:0.7rem;cursor:pointer">Cancel</button>
+                </div>`;
+              const cancelBtn = bodyDiv.querySelector('.comment-cancel-btn');
+              cancelBtn.addEventListener('click', async () => { 
+                const { task } = await api('/api/tasks/' + tid);
+                renderFeed(task);
+              });
+              bodyDiv.querySelector('.comment-save-btn').addEventListener('click', async () => {
+                const newBody = bodyDiv.querySelector('textarea').value;
+                try {
+                  await api('/api/comments/' + commentId, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ body: newBody }) });
+                  const { task } = await api('/api/tasks/' + tid);
+                  renderFeed(task);
+                } catch (err) {
+                  showToast('Failed to update comment: ' + err.message);
+                }
+              });
             }
           });
         });
@@ -830,9 +1066,12 @@
         <div style="margin:0.3rem 0;padding:0.3rem;background:#0f172a;border-radius:0.25rem">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div style="font-size:0.7rem;opacity:0.7;margin-bottom:0.1rem">${escapeHtml(c.author)} — ${new Date(c.created_at).toLocaleString()}</div>
-            <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
+            <div>
+              <button class="comment-edit-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#fbbf24;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Edit comment">✎</button>
+              <button class="comment-delete-btn" data-comment-id="${c.id}" data-task-id="${task.id}" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.8rem;padding:0;line-height:1" title="Delete comment">×</button>
+            </div>
           </div>
-          <div style="font-size:0.85rem">${renderMarkdown(c.body)}</div>
+          <div class="comment-body-div" style="font-size:0.85rem">${renderMarkdown(c.body)}</div>
         </div>
       `).join('');
       // Wire up comment delete buttons (setTimeout to ensure DOM updated)
@@ -846,10 +1085,43 @@
             try {
               await api('/api/comments/' + commentId, { method: 'DELETE' });
               const { task } = await api('/api/tasks/' + tid);
+              renderComments(task);
               renderFeed(task);
             } catch (err) {
               showToast('Failed to delete comment: ' + err.message);
             }
+          });
+        });
+        // Wire up comment edit buttons
+        container.querySelectorAll('.comment-edit-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const commentId = Number(btn.dataset.commentId);
+            const tid = Number(btn.dataset.taskId);
+            const commentDiv = btn.closest('div').parentElement.parentElement;
+            const bodyDiv = commentDiv.querySelector('.comment-body-div');
+            const oldBody = bodyDiv.textContent;
+            bodyDiv.innerHTML = `<textarea style="width:100%;min-height:40px;font-size:0.85rem;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:0.25rem;padding:0.3rem">${escapeHtml(oldBody)}</textarea>
+              <div style="display:flex;gap:0.3rem;margin-top:0.2rem">
+                <button class="comment-save-btn" style="background:#334155;color:#e2e8f0;border:none;border-radius:0.25rem;padding:0.15rem 0.5rem;font-size:0.7rem;cursor:pointer">Save</button>
+                <button class="comment-cancel-btn" style="background:transparent;color:#94a3b8;border:none;border-radius:0.25rem;padding:0.15rem 0.5rem;font-size:0.7rem;cursor:pointer">Cancel</button>
+              </div>`;
+            const cancelBtn = bodyDiv.querySelector('.comment-cancel-btn');
+            cancelBtn.addEventListener('click', async () => {
+              const { task } = await api('/api/tasks/' + tid);
+              renderComments(task);
+            });
+            bodyDiv.querySelector('.comment-save-btn').addEventListener('click', async () => {
+              const newBody = bodyDiv.querySelector('textarea').value;
+              try {
+                await api('/api/comments/' + commentId, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ body: newBody }) });
+                const { task } = await api('/api/tasks/' + tid);
+                renderComments(task);
+                renderFeed(task);
+              } catch (err) {
+                showToast('Failed to update comment: ' + err.message);
+              }
+            });
           });
         });
       }, 0);
@@ -1386,6 +1658,19 @@
       e.target.value = '';
     });
 
+    // Click outside modal to close
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+          isModalOpen = false;
+          if (overlay.id === 'taskModalOverlay' && window.location.pathname.startsWith('/task/')) {
+            window.history.pushState({}, '', '/');
+          }
+        }
+      });
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
@@ -1424,6 +1709,10 @@
       if (match) {
         openTaskModal(Number(match[1]));
       }
+      // Notify parent dashboard of navigation (for :1111 URL sync)
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: 'pi-board-navigate', path: window.location.pathname }, '*');
+      }
     }
 
     // Intercept card title link clicks for SPA behavior
@@ -1439,6 +1728,57 @@
     // Handle browser back/forward
     window.addEventListener('popstate', handleRoute);
 
+    // --- Project Sidebar ---
+    let projectLabels = [];
+    let sidebarPollInterval = null;
+    
+    function getProjectInitial(name) {
+      return name ? name.charAt(0).toUpperCase() : '?';
+    }
+    
+    async function refreshSidebar() {
+      await fetchLabels();
+      // A "project" is any label — show them all as sidebar icons
+      const labels = allLabels || [];
+      const container = document.getElementById('sidebarIcons');
+      const activeLabelId = document.getElementById('labelFilter').value;
+      
+      container.innerHTML = labels.map(l => `
+        <div class="sidebar-icon${String(l.id) === activeLabelId ? ' active' : ''}" 
+             style="background:${escapeHtml(l.color)}22;color:${escapeHtml(l.color)};border:1px solid ${escapeHtml(l.color)}44"
+             data-label-id="${l.id}"
+             data-label-name="${escapeHtml(l.name)}"
+             title="${escapeHtml(l.name)}">
+          <span>${getProjectInitial(l.name)}</span>
+          <span class="tooltip">${escapeHtml(l.name)}</span>
+        </div>
+      `).join('');
+      
+      // Click handler: filter board by that label
+      container.querySelectorAll('.sidebar-icon').forEach(icon => {
+        icon.addEventListener('click', () => {
+          const labelId = icon.dataset.labelId;
+          const labelFilter = document.getElementById('labelFilter');
+          if (labelFilter.value === labelId) {
+            labelFilter.value = '';
+          } else {
+            labelFilter.value = labelId;
+          }
+          renderBoard();
+          refreshSidebar();
+        });
+      });
+      
+      projectLabels = labels;
+    }
+    
+    function startSidebarPoll() {
+      if (sidebarPollInterval) clearInterval(sidebarPollInterval);
+      sidebarPollInterval = setInterval(refreshSidebar, 5000);
+    }
+    
+    document.body.classList.add('has-sidebar');
+
     // Initial load
     (async () => {
       await populateSprintFilter();
@@ -1446,6 +1786,8 @@
       await populateLabelFilter();
       await renderBoard();
       startAutoRefresh();
+      startSidebarPoll();
+      await refreshSidebar();
       handleRoute();
     })();
   </script>

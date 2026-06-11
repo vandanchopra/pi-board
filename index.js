@@ -8,7 +8,7 @@ const {
   getColumnSettings, setColumnSetting,
   exportAll, importAll,
   getSprintBurndown, getAssigneeWorkload,
-  createComment, listComments, deleteComment,
+  createComment, listComments, updateComment, deleteComment,
   STATUSES,
 } = require("./lib/board");
 const { start, stop } = require("./server");
@@ -308,6 +308,23 @@ module.exports = async function (pi) {
       deleteComment(params.id);
       return {
         content: [{ type: "text", text: `Deleted comment ${params.id}` }],
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: "board_update_comment",
+    label: "Update Comment",
+    description: "Update a comment by ID",
+    parameters: Type.Object({
+      id: Type.Integer({ description: "Comment ID" }),
+      body: Type.String({ description: "Updated comment text" }),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const comment = updateComment(params.id, { body: params.body });
+      return {
+        content: [{ type: "text", text: `Updated comment ${comment.id}` }],
+        details: { comment },
       };
     },
   });

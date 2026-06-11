@@ -8,9 +8,9 @@ const {
   createSubtask, getSubtask, listSubtasks, toggleSubtask, updateSubtask, deleteSubtask,
   getColumnSettings, setColumnSetting,
   exportAll, importAll,
-  getTaskActivity,
+  getTaskActivity, deleteActivity,
   getSprintBurndown, getAssigneeWorkload,
-  createComment, listComments, deleteComment,
+  createComment, listComments, updateComment, deleteComment,
   STATUSES,
 } = require('./lib/board');
 
@@ -101,6 +101,15 @@ app.get('/api/tasks/:id/activity', (req, res) => {
   }
 });
 
+app.delete('/api/activity/:id', (req, res) => {
+  try {
+    const activity = deleteActivity(Number(req.params.id));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 app.get('/api/tasks/:id/comments', (req, res) => {
   try {
     const comments = listComments(Number(req.params.id));
@@ -123,6 +132,15 @@ app.delete('/api/comments/:id', (req, res) => {
   try {
     deleteComment(Number(req.params.id));
     res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.patch('/api/comments/:id', (req, res) => {
+  try {
+    const comment = updateComment(Number(req.params.id), req.body);
+    res.json({ comment });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -391,6 +409,92 @@ app.get('/api/export/csv', (req, res) => {
 });
 
 app.get('/api/statuses', (_req, res) => res.json({ statuses: STATUSES }));
+
+// ── Session tracking (for workflow visibility) ──────────────────────────────
+// In-memory store: active workflow sessions per task
+// Keyed by session UID, values: { taskId, sandboxName, status, iteration, startedAt }
+const activeSessions = new Map();
+
+app.get('/api/tasks/:taskId/sessions', (req, res) => {
+  const taskId = Number(req.params.taskId);
+  const sessions = [];
+  for (const [uid, s] of activeSessions) {
+    if (s.taskId === taskId) sessions.push({ uid, ...s });
+  }
+  res.json({ sessions });
+});
+
+app.post('/api/tasks/:taskId/sessions', (req, res) => {
+  const { uid, sandboxName, status, iteration } = req.body;
+  if (!uid) return res.status(400).json({ error: 'uid required' });
+  activeSessions.set(uid, {
+    taskId: Number(req.params.taskId),
+    sandboxName: sandboxName || '',
+    status: status || 'running',
+    iteration: iteration || 1,
+    startedAt: new Date().toISOString(),
+  });
+  // Also add an activity log entry
+  try {
+    const activityMod = require('./lib/activity');
+    if (activityMod?.addActivity) {
+      activityMod.addActivity(Number(req.params.taskId), 'workflow_started', {
+        uid, sandboxName, status: 'running',
+      });
+    }
+  } catch {}
+  res.json({ ok: true, uid });
+});
+
+app.patch('/api/tasks/:taskId/sessions/:uid', (req, res) => {
+  const { uid } = req.params;
+  const session = activeSessions.get(uid);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (req.body.status !== undefined) session.status = req.body.status;
+  if (req.body.iteration !== undefined) session.iteration = req.body.iteration;
+  if (req.body.sandboxName !== undefined) session.sandboxName = req.body.sandboxName;
+  res.json({ ok: true, session: { uid, ...session } });
+});
+
+app.delete('/api/tasks/:taskId/sessions/:uid', (req, res) => {
+  const { uid } = req.params;
+  activeSessions.delete(uid);
+  res.json({ ok: true });
+});
+
+// Stop a running session: write stop signal file + optional kill
+app.post('/api/sessions/:uid/stop', (req, res) => {
+  const { uid } = req.params;
+  const session = activeSessions.get(uid);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  // Write stop signal file
+  const stopFile = `/tmp/workflow-stop-${uid}`;
+  try {
+    require('fs').writeFileSync(stopFile, JSON.stringify({
+      stoppedAt: new Date().toISOString(),
+      reason: req.body.reason || 'user_requested',
+    }));
+  } catch (e) {
+    return res.status(500).json({ error: `Failed to write stop file: ${e.message}` });
+  }
+  // Try to kill sandbox if sandboxName is known
+  if (session.sandboxName) {
+    try {
+      require('child_process').exec(`sbx rm ${session.sandboxName} --force 2>/dev/null`);
+    } catch {}
+  }
+  session.status = 'stopping';
+  res.json({ ok: true, stopFile });
+});
+
+// Get all active sessions (for global footer)
+app.get('/api/sessions/active', (_req, res) => {
+  const sessions = [];
+  for (const [uid, s] of activeSessions) {
+    sessions.push({ uid, ...s });
+  }
+  res.json({ sessions });
+});
 
 // SPA catch-all: serve index.html for client-side routes like /task/:id
 app.get('*', (_req, res) => {
