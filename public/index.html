@@ -964,7 +964,7 @@
             const elapsed = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 1000);
             const elapsedStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed/60)}m ${elapsed%60}s`;
             const statusIcon = s.status === 'stopping' ? '🛑' : s.status === 'stuck' ? '⚠️' : '🟢';
-            const obsUrl = `http://localhost:1111/session/${s.uid}`;
+            const obsUrl = `http://localhost:43190/session/${s.uid}`;
             return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #334155">
               <div style="flex:1">
                 ${statusIcon} <strong>${escapeHtml(s.sandboxName || 'workflow')}</strong>
