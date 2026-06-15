@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const {
-  createTask, updateTask, listTasks, getTask, deleteTask, moveTask,
+  createTask, updateTask, listTasks, getTask, deleteTask, moveTask, positionTask,
   createSprint, completeSprint, incompleteSprint, listSprints, getActiveSprint, updateSprint, deleteSprint, getSprintStats,
   createLabel, listLabels, updateLabel, deleteLabel,
   createPerson, listPeople, updatePerson, deletePerson,
@@ -77,6 +77,15 @@ app.delete('/api/tasks/:id', (req, res) => {
 app.post('/api/tasks/:id/move', (req, res) => {
   try {
     const task = moveTask(Number(req.params.id), req.body.status, req.body.order, req.body.author || "pm-vh");
+    res.json({ task });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post('/api/tasks/:id/position', (req, res) => {
+  try {
+    const task = positionTask(Number(req.params.id), req.body.status, req.body.beforeId, req.body.author || "pm-vh");
     res.json({ task });
   } catch (e) {
     res.status(400).json({ error: e.message });

@@ -121,7 +121,7 @@
     }
     .board {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(5, minmax(240px, 1fr));
       gap: 0.75rem;
       padding: 1rem;
       overflow-x: auto;
@@ -196,14 +196,13 @@
     .chip.priority-low { background: rgba(16,185,129,0.2); color: #6ee7b7; }
     .label-chip { font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 0.25rem; }
     .assignee-chip { font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 0.25rem; background: #334155; }
-    .column.collapsed { min-width: 60px; max-width: 80px; }
+    .column.collapsed { min-width: 60px; max-width: 60px; }
     .column.collapsed .column-header { writing-mode: vertical-rl; text-orientation: mixed; padding: 0.5rem 0.25rem; justify-content: center; }
     .status-backlog .column-header { color: #94a3b8; }
     .status-in-progress .column-header { color: #38bdf8; }
     .status-code-review .column-header { color: #a78bfa; }
     .status-uat .column-header { color: #fbbf24; }
     .status-completed .column-header { color: #4ade80; }
-    .status-features-of-the-future .column-header { color: #c084fc; }
     .toast {
       position: fixed;
       bottom: 1rem;
@@ -269,9 +268,14 @@
       border-radius: 0.375rem;
       transition: background 0.15s, box-shadow 0.15s;
     }
-    .card.drag-over-card {
-      border-top: 2px solid #38bdf8;
-      margin-top: -2px;
+    .drop-placeholder {
+      min-height: 72px;
+      border: 2px dashed #38bdf8;
+      border-radius: 0.375rem;
+      background: rgba(56, 189, 248, 0.12);
+      box-shadow: inset 0 0 16px rgba(56, 189, 248, 0.12);
+      pointer-events: none;
+      transition: min-height 0.12s ease, margin 0.12s ease;
     }
     body.dragging .column-body {
       min-height: 80px;
@@ -360,18 +364,14 @@
       color: rgba(255,255,255,0.6);
     }
 
-    @media (max-width: 1200px) {
-      .board { grid-template-columns: repeat(3, 1fr); }
-    }
     @media (max-width: 768px) {
-      .board { grid-template-columns: 1fr; }
       .column { max-height: none; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1><a href="/">vh-board</a></h1>
+    <h1><a href="/">vh-board</a> <span style="font-size:0.7rem;color:#94a3b8;font-weight:500">v1.1.2</span></h1>
     <div class="controls">
       <select id="sprintFilter"><option value="">All Sprints</option></select>
       <button id="activeSprintBtn" style="font-size:0.75rem;padding:0.35rem 0.5rem">Active Sprint</button>
@@ -469,7 +469,7 @@
         <div class="form-group span-4"><label>Title</label><input id="eTitle" /></div>
         <div class="form-group span-4"><label>Description</label><textarea id="eDesc"></textarea></div>
         <div class="form-group"><label>Type</label><select id="eType"><option value="bug">Bug</option><option value="feature">Feature</option><option value="chore">Chore</option></select></div>
-        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option><option value="features-of-the-future">Features of the Future</option></select></div>
+        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
         <div class="form-group"><label>Priority</label><select id="ePriority"><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
         <div class="form-group"><label>Sprint</label><select id="eSprint"><option value="">None</option></select></div>
         <div class="form-group"><label>Assignee</label><select id="eAssignee"><option value="">Unassigned</option></select></div>
@@ -497,7 +497,7 @@
       <div class="form-group"><label>Title</label><input id="nTitle" /></div>
       <div class="form-group"><label>Description</label><textarea id="nDesc"></textarea></div>
       <div class="form-group"><label>Type</label><select id="nType"><option value="feature">Feature</option><option value="bug">Bug</option><option value="chore">Chore</option></select></div>
-      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option><option value="features-of-the-future">Features of the Future</option></select></div>
+      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
       <div class="form-group"><label>Priority</label><select id="nPriority"><option value="medium">Medium</option><option value="urgent">Urgent</option><option value="high">High</option><option value="low">Low</option></select></div>
       <div class="form-group"><label>Sprint</label><select id="nSprint"><option value="">None</option></select></div>
       <div class="form-group"><label>Assignee</label><select id="nAssignee"><option value="">Unassigned</option></select></div>
@@ -577,7 +577,7 @@
   </div>
 
   <script>
-    const STATUSES = ['backlog','in-progress','code-review','uat','completed','features-of-the-future'];
+    const STATUSES = ['backlog','in-progress','code-review','uat','completed'];
     const boardEl = document.getElementById('board');
     const sprintFilterEl = document.getElementById('sprintFilter');
     const searchInputEl = document.getElementById('searchInput');
@@ -593,6 +593,7 @@
     let allSprints = [];
     let isModalOpen = false;
     let isDragging = false;
+    let draggedTaskId = null;
 
     // Load preferences
     const savedSort = localStorage.getItem('pi-board-sort');
@@ -641,11 +642,6 @@
       return data.tasks || [];
     }
 
-    async function fetchAllTasks() {
-      const data = await api('/api/tasks');
-      return data.tasks || [];
-    }
-
     async function fetchSprints() {
       const data = await api('/api/sprints');
       allSprints = data.sprints || [];
@@ -690,6 +686,50 @@
       return labels.map(l => `<span class="label-chip" style="background:${escapeHtml(l.color)}22;color:${escapeHtml(l.color)}">${escapeHtml(l.name)}</span>`).join('');
     }
 
+    function clearDropPlaceholder() {
+      document.querySelectorAll('.drop-placeholder').forEach(el => el.remove());
+      document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    function showDropPlaceholder(columnBody, beforeCard = null) {
+      if (!columnBody) return;
+      let placeholder = document.querySelector('.drop-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.className = 'drop-placeholder';
+      }
+      columnBody.classList.add('drag-over');
+      if (beforeCard) {
+        columnBody.insertBefore(placeholder, beforeCard);
+      } else {
+        columnBody.appendChild(placeholder);
+      }
+    }
+
+    function updateDropPlaceholderFromPoint(columnBody, clientY, draggedId) {
+      if (!columnBody) return;
+      const cards = Array.from(columnBody.querySelectorAll('.card'))
+        .filter(card => Number(card.dataset.id) !== Number(draggedId));
+      const beforeCard = cards.find(card => {
+        const rect = card.getBoundingClientRect();
+        return clientY < rect.top + rect.height / 2;
+      }) || null;
+      showDropPlaceholder(columnBody, beforeCard);
+    }
+
+    function getPlaceholderBeforeId(columnBody) {
+      const placeholder = columnBody.querySelector('.drop-placeholder');
+      if (!placeholder) return null;
+      const nextCard = placeholder.nextElementSibling;
+      return nextCard && nextCard.classList.contains('card') ? Number(nextCard.dataset.id) : null;
+    }
+
+    function applyBoardGrid(collapsedCols) {
+      boardEl.style.gridTemplateColumns = STATUSES
+        .map(status => collapsedCols.includes(status) ? '60px' : 'minmax(240px, 1fr)')
+        .join(' ');
+    }
+
     function renderCard(task) {
       const isBlocked = task.depends_on && task.depends_on.some(d => d.status !== 'completed');
       const div = document.createElement('div');
@@ -712,6 +752,7 @@
       `;
       div.addEventListener('dragstart', (e) => {
         isDragging = true;
+        draggedTaskId = task.id;
         document.body.classList.add('dragging');
         e.dataTransfer.setData('text/plain', task.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -721,56 +762,36 @@
         isDragging = false;
         document.body.classList.remove('dragging');
         div.classList.remove('dragging');
-        document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
-        document.querySelectorAll('.card.drag-over-card').forEach(el => el.classList.remove('drag-over-card'));
+        draggedTaskId = null;
+        clearDropPlaceholder();
       });
-      // Intra-column drag: highlight card above drop target
+      // Show a real gap before/after cards so the destination position is obvious.
       div.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        document.querySelectorAll('.card.drag-over-card').forEach(el => el.classList.remove('drag-over-card'));
         e.dataTransfer.dropEffect = 'move';
-        const draggedId = e.dataTransfer.getData('text/plain');
-        if (draggedId && Number(draggedId) !== task.id) {
-          div.classList.add('drag-over-card');
-        }
+        const draggedId = draggedTaskId || Number(e.dataTransfer.getData('text/plain'));
+        if (!draggedId || draggedId === task.id) return;
+        updateDropPlaceholderFromPoint(div.closest('.column-body'), e.clientY, draggedId);
       });
-      div.addEventListener('dragleave', (e) => {
-        div.classList.remove('drag-over-card');
-      });
-      // Drop on card to reorder within same column
+      // Drop on card to position at the visible placeholder, including across columns.
       div.addEventListener('drop', async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        div.classList.remove('drag-over-card');
-        const draggedId = Number(e.dataTransfer.getData('text/plain'));
+        const draggedId = draggedTaskId || Number(e.dataTransfer.getData('text/plain'));
         if (!draggedId || draggedId === task.id) return;
-        // Find both cards' status and reorder
         const parentColumn = div.closest('.column-body');
         const targetStatus = parentColumn ? parentColumn.dataset.status : null;
+        const beforeId = parentColumn ? getPlaceholderBeforeId(parentColumn) : task.id;
+        clearDropPlaceholder();
         if (!targetStatus) return;
         try {
-          // Get all tasks in this column
-          const allTasks = await fetchAllTasks();
-          const columnTasks = allTasks.filter(t => t.status === targetStatus).sort((a, b) => (a.order || 0) - (b.order || 0));
-          // Build new order: insert dragged task before target
-          const newOrder = [];
-          for (const ct of columnTasks) {
-            if (ct.id === draggedId) continue; // skip dragged
-            if (ct.id === task.id) {
-              newOrder.push(draggedId); // insert dragged before target
-            }
-            newOrder.push(ct.id);
-          }
-          // Update order for each task in the column
-          for (let i = 0; i < newOrder.length; i++) {
-            await api(`/api/tasks/${newOrder[i]}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: targetStatus, order: i, author: 'Vandan' })
-            });
-          }
-          showToast('Reordered');
+          await api(`/api/tasks/${draggedId}/position`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: targetStatus, beforeId, author: 'Vandan' })
+          });
+          showToast('Task reordered');
           await renderBoard();
         } catch (err) {
           showToast('Reordering failed: ' + err.message);
@@ -786,7 +807,7 @@
         e.stopPropagation();
         const status = prompt(`Move task #${task.id} to status:\n${STATUSES.join(', ')}`, task.status);
         if (status && STATUSES.includes(status) && status !== task.status) {
-          api(`/api/tasks/${task.id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, order: task.order, author: 'Vandan' }) })
+          api(`/api/tasks/${task.id}/position`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, beforeId: null, author: 'Vandan' }) })
             .then(() => { showToast('Task moved'); renderBoard(); })
             .catch(err => showToast(err.message));
         }
@@ -810,6 +831,7 @@
       await fetchColumnSettings();
       boardEl.innerHTML = '';
       const collapsedCols = JSON.parse(localStorage.getItem('pi-board-collapsed') || '[]');
+      applyBoardGrid(collapsedCols);
       for (const status of STATUSES) {
         const col = document.createElement('div');
         const isCollapsed = collapsedCols.includes(status);
@@ -832,19 +854,25 @@
           body.appendChild(renderCard(task));
         });
         body.addEventListener('dragenter', (e) => { e.preventDefault(); body.classList.add('drag-over'); });
-        body.addEventListener('dragleave', (e) => { body.classList.remove('drag-over'); });
-        body.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-        body.addEventListener('drop', async (e) => {
-          // Only handle drop directly on column body (not on cards within it)
-          if (e.target !== body && !e.target.classList.contains('column-body')) return;
+        body.addEventListener('dragleave', (e) => {
+          if (!body.contains(e.relatedTarget)) clearDropPlaceholder();
+        });
+        body.addEventListener('dragover', (e) => {
           e.preventDefault();
-          document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
-          const draggedId = e.dataTransfer.getData('text/plain');
+          e.dataTransfer.dropEffect = 'move';
+          const draggedId = draggedTaskId || Number(e.dataTransfer.getData('text/plain'));
+          if (draggedId) updateDropPlaceholderFromPoint(body, e.clientY, draggedId);
+        }, true);
+        body.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          const draggedId = draggedTaskId || e.dataTransfer.getData('text/plain');
           const id = Number(draggedId);
           const newStatus = body.dataset.status;
+          const beforeId = getPlaceholderBeforeId(body);
+          clearDropPlaceholder();
           if (!id || !newStatus) return;
           try {
-            await api(`/api/tasks/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, order: 0, author: 'Vandan' }) });
+            await api(`/api/tasks/${id}/position`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus, beforeId, author: 'Vandan' }) });
             showToast('Task moved');
             await renderBoard();
           } catch (err) {
@@ -865,6 +893,7 @@
             col.querySelector('.collapse-btn').textContent = '▸';
           }
           localStorage.setItem('pi-board-collapsed', JSON.stringify(collapsed));
+          applyBoardGrid(collapsed);
         });
         boardEl.appendChild(col);
       }
