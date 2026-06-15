@@ -469,7 +469,7 @@
         <div class="form-group span-4"><label>Title</label><input id="eTitle" /></div>
         <div class="form-group span-4"><label>Description</label><textarea id="eDesc"></textarea></div>
         <div class="form-group"><label>Type</label><select id="eType"><option value="bug">Bug</option><option value="feature">Feature</option><option value="chore">Chore</option></select></div>
-        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
+        <div class="form-group"><label>Status</label><select id="eStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">User Acceptance Testing</option><option value="completed">Completed</option></select></div>
         <div class="form-group"><label>Priority</label><select id="ePriority"><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
         <div class="form-group"><label>Sprint</label><select id="eSprint"><option value="">None</option></select></div>
         <div class="form-group"><label>Assignee</label><select id="eAssignee"><option value="">Unassigned</option></select></div>
@@ -497,7 +497,7 @@
       <div class="form-group"><label>Title</label><input id="nTitle" /></div>
       <div class="form-group"><label>Description</label><textarea id="nDesc"></textarea></div>
       <div class="form-group"><label>Type</label><select id="nType"><option value="feature">Feature</option><option value="bug">Bug</option><option value="chore">Chore</option></select></div>
-      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">UAT</option><option value="completed">Completed</option></select></div>
+      <div class="form-group"><label>Status</label><select id="nStatus"><option value="backlog">Backlog</option><option value="in-progress">In Progress</option><option value="code-review">Code Review</option><option value="uat">User Acceptance Testing</option><option value="completed">Completed</option></select></div>
       <div class="form-group"><label>Priority</label><select id="nPriority"><option value="medium">Medium</option><option value="urgent">Urgent</option><option value="high">High</option><option value="low">Low</option></select></div>
       <div class="form-group"><label>Sprint</label><select id="nSprint"><option value="">None</option></select></div>
       <div class="form-group"><label>Assignee</label><select id="nAssignee"><option value="">Unassigned</option></select></div>
@@ -686,6 +686,10 @@
       return labels.map(l => `<span class="label-chip" style="background:${escapeHtml(l.color)}22;color:${escapeHtml(l.color)}">${escapeHtml(l.name)}</span>`).join('');
     }
 
+    function displayStatus(status) {
+      return status === 'uat' ? 'User Acceptance Testing' : status.replace(/-/g, ' ');
+    }
+
     function clearDropPlaceholder() {
       document.querySelectorAll('.drop-placeholder').forEach(el => el.remove());
       document.querySelectorAll('.column-body.drag-over').forEach(el => el.classList.remove('drag-over'));
@@ -849,9 +853,9 @@
         const overWip = wip && wip.wip_limit > 0 && statusTasks.length > wip.wip_limit;
         col.innerHTML = `
           <div class="column-header" style="${overWip ? 'background:rgba(220,38,38,0.15);border-color:rgba(220,38,38,0.4)' : ''}">
-            <span>${status.replace(/-/g, ' ')}${wip && wip.wip_limit > 0 ? ` <span style="font-size:0.7rem;opacity:0.7">(${statusTasks.length}/${wip.wip_limit})</span>` : ''}</span>
+            <span>${displayStatus(status)}${isCollapsed ? ` | ${statusTasks.length}` : ''}${wip && wip.wip_limit > 0 ? ` <span style="font-size:0.7rem;opacity:0.7">(${statusTasks.length}/${wip.wip_limit})</span>` : ''}</span>
             <span style="display:flex;align-items:center;gap:0.4rem">
-              <span class="count">${statusTasks.length}</span>
+              ${isCollapsed ? '' : `<span class="count">${statusTasks.length}</span>`}
               <button class="collapse-btn" data-status="${status}" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:0.8rem;padding:0.1rem">${isCollapsed ? '▸' : '▾'}</button>
             </span>
           </div>
